@@ -1,10 +1,9 @@
 from functools import wraps, lru_cache, singledispatch
-from deprecated import deprecated
 import warnings
-from memory_profiler import profile as memit  # готовый декоратор для замера использования памяти
+# from memory_profiler import profile as memit  # готовый декоратор для замера использования памяти
 from dataclasses import dataclass
 import time
-from colorama import Fore
+from colorama import Fore, Back
 
 # https://nuancesprog.ru/p/17759/
 
@@ -49,13 +48,29 @@ def logger(function):
     return wrapper
 
 
+def deprecated(sms: str):
+    """Вывод предупреждений"""
+
+    assert isinstance(sms, str)
+
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            print(Back.RED + sms + Back.RESET)
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def warns(action: str):
     """Обработка предупреждений: пропуск, игнорирование, исключение, печать"""
 
-    assert type(action) is str, 'type(action) is str'
+    assert isinstance(action, str)
     action = action.strip().lower()
 
-    def decor(function):
+    def decorator(function):
         @wraps(function)
         def wrapper(*args, **kwargs):
 
@@ -82,7 +97,7 @@ def warns(action: str):
 
         return wrapper
 
-    return decor
+    return decorator
 
 
 def try_except(action: str = 'pass'):
@@ -111,7 +126,7 @@ def try_except(action: str = 'pass'):
 def timeit(rnd=4):
     """Измерение времени выполнения ф-и"""
 
-    def decorate(function):
+    def decorator(function):
         @wraps(function)
         def wrapper(*args, **kwargs):
             tic = time.perf_counter()
@@ -123,7 +138,7 @@ def timeit(rnd=4):
 
         return wrapper
 
-    return decorate
+    return decorator
 
 
 def cache(function):
@@ -160,7 +175,7 @@ def countcall(function):
 def repeat(number_of_times: int):
     """Вызов ф-и несколько раз подряд"""
 
-    def decor(function):
+    def decorator(function):
         @wraps(function)
         def wrapper(*args, **kwargs):
             res = [None] * number_of_times
@@ -170,13 +185,13 @@ def repeat(number_of_times: int):
 
         return wrapper
 
-    return decor
+    return decorator
 
 
 def retry(num_retries, exception_to_check, sleep_time=0):
     """Заставляет функцию, которая сталкивается с исключением, совершить несколько повторных попыток"""
 
-    def decor(func):
+    def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             for i in range(1, num_retries + 1):
@@ -191,14 +206,14 @@ def retry(num_retries, exception_to_check, sleep_time=0):
 
         return wrapper
 
-    return decor
+    return decorator
 
 
 def rate_limited(max_per_second):
     """Ограничивает частоту вызова функции"""
     min_interval = 1.0 / float(max_per_second)
 
-    def decor(function):
+    def decorator(function):
         last_time_called = [0.0]
 
         @wraps(function)
@@ -212,7 +227,7 @@ def rate_limited(max_per_second):
 
         return wrapper
 
-    return decor
+    return decorator
 
 
 """
@@ -313,13 +328,12 @@ class Person:
         return NotImplemented
 
 
-if __name__ == '__main__':
+def main():
+    """Тестирование"""
     print(heavy_processing(2))
     heavy_processing(2)
 
     print(_foo(10))
-
-    exit()
 
     heavy_processing(3)
     batman = Movie(2.5)
@@ -338,3 +352,9 @@ if __name__ == '__main__':
                   job="software engineer", )
 
     print(john == anne)
+
+
+if __name__ == '__main__':
+    import cProfile
+
+    main()
