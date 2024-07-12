@@ -208,9 +208,24 @@ class DataFrame(pd.DataFrame):
             return df
 
     # TODO
-    def encode_weight_of_evidence(self, column: str, drop=False, inplace=False) -> object | None:
+    def encode_weight_of_evidence(self, column: str, drop=False, inplace=False, **kwargs) -> object | None:
         """"""
+        target = self.__get_target(**kwargs)
         assert column in self.columns
+        assert len(self[target].unique()) == 2  # проверка target на бинарность (хороший/плохой)
+        assert all(isinstance(el, (int, float, np.number)) for el in self[target])  # проверка на тип данных target
+
+        # bad value, count bad, good value, count good
+        bad, Nbad, good, Ngood = self[target].value_counts().sort_index().reset_index().to_numpy().flatten()
+        n_categories = dict()
+        for category in self[column].unique():
+            n_categories[(category, bad)] = self[(self[column] == category) & (self[target] == bad)].shape[0]
+            n_categories[(category, good)] = self[(self[column] == category) & (self[target] == good)].shape[0]
+
+        df = self[column].apply(lambda x: np.log((1 / Ngood) / (1 / Nbad)))
+
+        information_value = 0
+        print(information_value)
 
         if drop: self.__init__(self.drop(column, axis=1))
         if inplace:
@@ -218,16 +233,10 @@ class DataFrame(pd.DataFrame):
         else:
             return df
 
-    # TODO
-    def encode_information_value(self, column: str, drop=False, inplace=False) -> object | None:
+    def encode_information_value(self, column: str, drop=False, inplace=False, **kwargs) -> object | None:
         """"""
+        target = self.__get_target(**kwargs)
         assert column in self.columns
-
-        if drop: self.__init__(self.drop(column, axis=1))
-        if inplace:
-            self.__init__(pd.concat([self, df], axis=1))
-        else:
-            return df
 
     def polynomial_features(self, columns: list[str] | tuple[str], degree: int, include_bias=False):
         """Полиномирование признаков"""
@@ -883,6 +892,7 @@ class DataFrame(pd.DataFrame):
         """Выявление категориальных признаков"""
         return self.select_dtypes(['object', 'category']).columns.to_list()
 
+    # TODO: os.remove('catboost_info' if exists)
     def catboost_importance_features(self, returns='dict', **kwargs) -> dict[str: float] | object:
         """Важные признаки для CatBoost"""
         target = self.__get_target(**kwargs)
@@ -1507,12 +1517,20 @@ def main(*args):
             print(df.isna().sum())
 
         if 1:
+            print(Fore.YELLOW + f'{DataFrame.encode_weight_of_evidence.__name__}' + Fore.RESET)
+            print(df.encode_weight_of_evidence('mean_radius'))
+            print(df.encode_weight_of_evidence('mean_radius', target=target))
+            print(df.encode_weight_of_evidence('mean_radius', inplace=True))
+            print(df.encode_weight_of_evidence('mean_radius', drop=True))
+            print(df.encode_weight_of_evidence('mean_radius', drop=True, inplace=True))
+
+        if 0:
             print(Fore.YELLOW + f'{DataFrame.detect_outliers.__name__}' + Fore.RESET)
             print(df.detect_outliers('Sigma'))
             print(df.detect_outliers('Tukey'))
             print(df.detect_outliers('Shovene'))
 
-        if 1:
+        if 0:
             print(Fore.YELLOW + f'{DataFrame.l1_models.__name__}' + Fore.RESET)
             l1 = 2 ** np.linspace(-10, 0, 1_000)
             print(df.l1_models(l1=l1, max_iter=1_000, tol=0.000_1))
@@ -1520,26 +1538,26 @@ def main(*args):
             df.l1_importance_plot(l1=l1)
             print(df.select_l1_features(5))
 
-        if 1:
+        if 0:
             print(Fore.YELLOW + f'{DataFrame.catboost_importance_features.__name__}' + Fore.RESET)
             print(df.catboost_importance_features())
             print(df.catboost_importance_features(returns='model'))
             print(df.catboost_importance_features(iterations=300, learning_rate=0.1, verbose=30))
             print(df.catboost_importance_features(iterations=3_000, learning_rate=0.01, verbose=False))
 
-        if 1:
+        if 0:
             print(Fore.YELLOW + f'{DataFrame.catboost_importance_features_plot.__name__}' + Fore.RESET)
             df.catboost_importance_features_plot(verbose=10)
 
-        if 1:
+        if 0:
             print(Fore.YELLOW + f'{DataFrame.catboost_importance_features_shap.__name__}' + Fore.RESET)
             df.catboost_importance_features_shap(verbose=20)
 
-        if 1:
+        if 0:
             print(Fore.YELLOW + f'{DataFrame.confidence_interval.__name__}' + Fore.RESET)
             print(df.confidence_interval(['radius_error', 'mean_radius'], 0.99))
 
-        if 1:
+        if 0:
             print(Fore.YELLOW + f'{DataFrame.corrplot.__name__}' + Fore.RESET)
             df.corrplot(2)
 
