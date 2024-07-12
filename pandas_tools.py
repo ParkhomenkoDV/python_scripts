@@ -1,3 +1,9 @@
+"""
+
+"""
+
+import os
+import sys
 from tqdm import tqdm
 from colorama import Fore
 
@@ -70,7 +76,7 @@ import pymorphy2 as pymorphy  # model = pymorphy.MorphAnalyzer'''
 
 # частные библиотеки
 import decorators
-from tools import isiter, export2
+from tools import export2
 
 
 class DataFrame(pd.DataFrame):
@@ -115,7 +121,6 @@ class DataFrame(pd.DataFrame):
     def __get_target(self, **kwargs) -> str:
         """Получение target из словаря или приватного атрибута"""
         target = kwargs.get('target', self.__target)
-        assert type(target) is str, f'{self.assert_sms} type(target) is str'
         assert target in self.columns, f'target "{self.__target}" not in {self.columns.to_list()}'
         return target
 
@@ -548,7 +553,7 @@ class DataFrame(pd.DataFrame):
 
         # TODO: multiprocessing
         l1_models = list()
-        for alpha in tqdm(l1, desc='Fitting L1-models'):
+        for alpha in tqdm(l1, desc='Fitting L1-models', colour='red', leave=True):
             model = Lasso(alpha=alpha,
                           max_iter=kwargs.pop('max_iter', 1_000),
                           tol=kwargs.pop('tol', 0.000_1),
@@ -1046,7 +1051,7 @@ class DataFrame(pd.DataFrame):
                          'TomekLinks', 'NearMiss', 'InstanceHardnessThreshold')
 
         assert method in valid_methods, f"This method doesn't support. Valid methods: {valid_methods}"
-        assert target in df.columns, f'target must be in columns of df: {list(df.columns)}'
+        assert target in self.columns, f'target must be in columns of df: {list(self.columns)}'
 
         # listing all possible parameters for sample processing
         random_state = kwargs.pop('random_state', None)
@@ -1129,8 +1134,8 @@ class DataFrame(pd.DataFrame):
                                                                    cv=cv,
                                                                    n_jobs=n_jobs)
 
-        changed_data, changed_labels = sampler.fit_resample(df.to_numpy(), df[target].to_numpy())
-        return pd.DataFrame(changed_data, changed_labels, columns=df.columns)
+        changed_data, changed_labels = sampler.fit_resample(self.to_numpy(), self[target].to_numpy())
+        return pd.DataFrame(changed_data, changed_labels, columns=self.columns)
 
     def oversampling(self, target: str | int | float, method='RandomOverSampler', **kwargs):
         """
@@ -1158,9 +1163,9 @@ class DataFrame(pd.DataFrame):
         # checking common input parameters
         valid_methods = (
             'RandomOverSampler', 'SMOTE', 'ADASYN', 'BorderlineSMOTE', 'SVMSMOTE', 'KMeansSMOTE', 'SMOTENC', 'SMOTEN')
-        assert isinstance(df, pd.DataFrame), f'Incorrect dtype. df: {type(df)} instead of {pd.DataFrame}'
+        assert isinstance(self, pd.DataFrame), f'Incorrect dtype. df: {type(self)} instead of {pd.DataFrame}'
         assert method in valid_methods, f"This method doesn't support. Valid methods: {valid_methods}"
-        assert target in df.columns, f'target must be in columns of df: {list(df.columns)}'
+        assert target in self.columns, f'target must be in columns of df: {list(self.columns)}'
 
         # listing all possible parameters for sample processing
         default_k_neighbors = 2 if method == 'KMeansSMOTE' else 5  # it's necessary because
@@ -1466,7 +1471,8 @@ class DataFrame(pd.DataFrame):
         return sss.split(x, y, n_splits=n_splits, **kwargs)
 
 
-if __name__ == '__main__':
+def main(*args):
+    """Тестирование"""
     if True:
         from sklearn.datasets import load_breast_cancer
 
@@ -1660,3 +1666,9 @@ if __name__ == '__main__':
 
             df.vectorize_tf_idf(['comment'], drop=True, inplace=True, stop_words=['00', 'ёмкость'])
             print(df)
+
+
+if __name__ == '__main__':
+    import cProfile
+
+    main()
