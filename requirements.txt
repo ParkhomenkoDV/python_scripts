@@ -3,7 +3,7 @@ tqdm
 
 pandas
 polars
-numpy
+numpy==1.26.4
 scipy
 
 matplotlib
