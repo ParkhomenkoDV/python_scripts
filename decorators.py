@@ -197,12 +197,12 @@ def retry(num_retries, exception_to_check, sleep_time=0):
             for i in range(1, num_retries + 1):
                 try:
                     return func(*args, **kwargs)
-                except exception_to_check as e:
-                    print(f"{func.__name__} raised {e.__class__.__name__}. Retrying...")
+                except exception_to_check as exception:
+                    print(f"{func.__name__} raised {exception.__class__.__name__}. Retrying...")
                     if i < num_retries:
                         time.sleep(sleep_time)
             # Инициирование исключения, если функция оказалось неуспешной после указанного количества повторных попыток
-            raise e
+            raise exception
 
         return wrapper
 
