@@ -85,15 +85,15 @@ class DataFrame(pd.DataFrame):
 
     @classmethod
     def version(cls) -> str:
-        version = '6.2'
-        print('WOE')
-        print('IV')
+        version = '7.0'
 
         return version
 
     def __init__(self, *args, **kwargs):
+        target = kwargs.pop('target', '')  # извлечение имени целевой колонки для передачи чистых данных в super()
         super(DataFrame, self).__init__(*args, **kwargs)
-        self.__target = ''  # имя целевой колонки
+        assert target in self.columns or target == ''  # проверка target до объявления __get_target
+        self.__target = target
 
     def __getitem__(self, item):
         """Возвращение DataFrame типа DataFrame от колонок"""
@@ -102,6 +102,11 @@ class DataFrame(pd.DataFrame):
             return super().__getitem__(item)  # pd.Series
         else:
             return DataFrame(super().__getitem__(item))  # DataFrame
+
+    # TODO из родительского класса
+    def copy(self):
+        """Возвращение DataFrame типа DataFrame от колонок"""
+        return DataFrame(self.copy())
 
     @property
     def target(self) -> str:
@@ -208,7 +213,8 @@ class DataFrame(pd.DataFrame):
             return df
 
     # TODO
-    def encode_weight_of_evidence(self, column: str, drop=False, inplace=False, **kwargs) -> object | None:
+    @decorators.warns('ignore')  # деление на 0
+    def encode_woe_iv(self, column: str, drop=False, inplace=False, **kwargs) -> object | None:
         """"""
         target = self.__get_target(**kwargs)
         assert column in self.columns
@@ -222,16 +228,23 @@ class DataFrame(pd.DataFrame):
             n_categories[(category, bad)] = self[(self[column] == category) & (self[target] == bad)].shape[0]
             n_categories[(category, good)] = self[(self[column] == category) & (self[target] == good)].shape[0]
 
-        df = self[column].apply(lambda x: np.log((1 / Ngood) / (1 / Nbad)))
+        result = {column + '_woe': np.full(self.shape[0], np.nan), column + '_iv': np.full(self.shape[0], np.nan)}
+        for i, row in self[[column, target]].iterrows():
+            row = row.to_numpy()[0]  # текущая категория
+            result[column + '_woe'][i] = np.log((n_categories[(row, good)] / Ngood) / (n_categories[(row, bad)] / Nbad))
+            result[column + '_iv'][i] = ((n_categories[(row, good)] / Ngood) - (n_categories[(row, bad)] / Nbad)) * \
+                                        result[column + '_woe'][
+                                            i]
 
-        information_value = 0
-        print(information_value)
+        total_information_value = np.sum(result[column + '_iv'])
+        print(f'total information value: {total_information_value}')
 
-        if drop: self.__init__(self.drop(column, axis=1))
+        if drop: self.drop(column, axis=1)
         if inplace:
-            self.__init__(pd.concat([self, df], axis=1))
+            self.__init__(pd.concat([self, DataFrame(result)], axis=1))
+            self.target = target
         else:
-            return df
+            return DataFrame(result)
 
     def encode_information_value(self, column: str, drop=False, inplace=False, **kwargs) -> object | None:
         """"""
@@ -1517,12 +1530,20 @@ def main(*args):
             print(df.isna().sum())
 
         if 1:
-            print(Fore.YELLOW + f'{DataFrame.encode_weight_of_evidence.__name__}' + Fore.RESET)
-            print(df.encode_weight_of_evidence('mean_radius'))
-            print(df.encode_weight_of_evidence('mean_radius', target=target))
-            print(df.encode_weight_of_evidence('mean_radius', inplace=True))
-            print(df.encode_weight_of_evidence('mean_radius', drop=True))
-            print(df.encode_weight_of_evidence('mean_radius', drop=True, inplace=True))
+            print(Fore.YELLOW + f'{DataFrame.encode_woe_iv.__name__}' + Fore.RESET)
+            print(df.encode_woe_iv('mean_radius'))
+            print(df.encode_woe_iv('mean_radius', target=target))
+            print(df.encode_woe_iv('mean_radius', inplace=True))
+            print(df.encode_woe_iv('mean_radius', drop=True))
+            print(df.encode_woe_iv('mean_radius', drop=True, inplace=True))
+
+        if 0:
+            print(Fore.YELLOW + f'{DataFrame.encode_woe_iv.__name__}' + Fore.RESET)
+            print(df.encode_woe_iv('mean_radius'))
+            print(df.encode_woe_iv('mean_radius', target=target))
+            print(df.encode_woe_iv('mean_radius', inplace=True))
+            print(df.encode_woe_iv('mean_radius', drop=True))
+            print(df.encode_woe_iv('mean_radius', drop=True, inplace=True))
 
         if 0:
             print(Fore.YELLOW + f'{DataFrame.detect_outliers.__name__}' + Fore.RESET)
