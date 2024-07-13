@@ -98,15 +98,19 @@ class DataFrame(pd.DataFrame):
     def __getitem__(self, item):
         """Возвращение DataFrame типа DataFrame от колонок"""
         # assert в родительском классе
-        if type(item) is str:
+        if isinstance(item, str):
             return super().__getitem__(item)  # pd.Series
         else:
-            return DataFrame(super().__getitem__(item))  # DataFrame
+            return DataFrame(super().__getitem__(item), target=self.target)  # DataFrame
 
     # TODO из родительского класса
-    def copy(self):
-        """Возвращение DataFrame типа DataFrame от колонок"""
-        return DataFrame(self.copy())
+    def __copy__(self):
+        """Возвращение копии DataFrame типа DataFrame"""
+        return DataFrame(super().__copy__(), target=self.target)
+
+    def __deepcopy__(self):
+        """Возвращение глубокой копии DataFrame типа DataFrame"""
+        return DataFrame(super().__copy__(), target=self.target)
 
     @property
     def target(self) -> str:
@@ -125,23 +129,29 @@ class DataFrame(pd.DataFrame):
 
     def __get_target(self, **kwargs) -> str:
         """Получение target из словаря или приватного атрибута"""
-        target = kwargs.get('target', self.__target)
+        target = kwargs.pop('target', self.__target)
         assert target in self.columns, f'target "{self.__target}" not in {self.columns.to_list()}'
         return target
 
-    def underline_columns(self) -> None:
+    def columns_case(self, animal: str) -> None:
         """Замена пробелов в названии столбцов нижним подчеркиванием _"""
-        for column in self.columns: self.rename(columns={column: column.replace(' ', '_')}, inplace=True)
+        assert isinstance(animal, str)
+        animal = animal.strip().lower()
+        if animal == 'snake':
+            for column in self.columns: self.rename(columns={column: column.replace(' ', '_')}, inplace=True)
+        elif animal == 'camel':
+            for column in self.columns: self.rename(columns={column: column.capitalize()}, inplace=True)
+        else:
+            raise Exception('animal not in ("snake", "camel")')
 
-    # TODO
-    def __drop_inplace_return(self, drop: bool, inplace: bool, df, column: str) -> object | None:
+    def __drop_inplace(self, drop: bool, inplace: bool, df, column: str) -> object | None:
         """"""
         assert isinstance(drop, bool)
         assert isinstance(inplace, bool)
 
-        drop and self.__init__(self.drop(column, axis=1))
+        drop and self.__init__(self.drop(column, axis=1), target=self.target)
         if inplace:
-            self.__init__(pd.concat([self, df], axis=1))
+            self.__init__(pd.concat([self, df], axis=1), target=self.target)
         else:
             return df
 
@@ -153,12 +163,7 @@ class DataFrame(pd.DataFrame):
         le = LabelEncoder()
         labels = le.fit_transform(self[column])
         df[column + '_label'] = labels
-        if drop: self.__init__(self.drop(column, axis=1))
-        if inplace:
-            self.__init__(pd.concat([self, df], axis=1))
-        else:
-            return df
-        # return self.__drop_inplace_return(drop, inplace, df, column)
+        return self.__drop_inplace(drop, inplace, df, column)
 
     def encode_one_hot(self, column: str, drop=False, inplace=False) -> object | None:
         """Преобразование n значений каждой категории в n бинарных категорий"""
@@ -167,11 +172,7 @@ class DataFrame(pd.DataFrame):
         ohe = OneHotEncoder(handle_unknown='ignore')
         dummies = ohe.fit_transform(self[column])
         df = DataFrame(dummies.toarray(), columns=ohe.get_feature_names_out())
-        if drop: self.__init__(self.drop(column, axis=1))
-        if inplace:
-            self.__init__(pd.concat([self, df], axis=1))
-        else:
-            return df
+        return self.__drop_inplace(drop, inplace, df, column)
 
     def encode_count(self, column: str, drop=False, inplace=False) -> object | None:
         """Преобразование значений каждой категории в количество этих значений"""
@@ -180,11 +181,7 @@ class DataFrame(pd.DataFrame):
         df = DataFrame()
         column_count = self[column].value_counts().to_dict()
         df[column + '_count'] = self[column].map(column_count)
-        if drop: self.__init__(self.drop(column, axis=1))
-        if inplace:
-            self.__init__(pd.concat([self, df], axis=1))
-        else:
-            return df
+        return self.__drop_inplace(drop, inplace, df, column)
 
     def encode_ordinal(self, column: str, drop=False, inplace=False) -> object | None:
         """Преобразование категориальных признаков в числовые признаки с учетом порядка или их весов"""
@@ -193,11 +190,7 @@ class DataFrame(pd.DataFrame):
         df = DataFrame()
         oe = OrdinalEncoder()
         df[column + '_ordinal'] = DataFrame(oe.fit_transform(self[[column]]))
-        if drop: self.__init__(self.drop(column, axis=1))
-        if inplace:
-            self.__init__(pd.concat([self, df], axis=1))
-        else:
-            return df
+        return self.__drop_inplace(drop, inplace, df, column)
 
     def encode_target(self, column: str, drop=False, inplace=False) -> object | None:
         """"""
@@ -206,16 +199,10 @@ class DataFrame(pd.DataFrame):
         df = DataFrame()
         te = TargetEncoder()
         df[column + '_target'] = DataFrame(te.fit_transform(X=df.nom_0, y=df.Target))
-        if drop: self.__init__(self.drop(column, axis=1))
-        if inplace:
-            self.__init__(pd.concat([self, df], axis=1))
-        else:
-            return df
+        return self.__drop_inplace(drop, inplace, df, column)
 
-    # TODO
-    @decorators.warns('ignore')  # деление на 0
     def encode_woe_iv(self, column: str, drop=False, inplace=False, **kwargs) -> object | None:
-        """"""
+        """Преобразование категориальных признаков в весомую доказательность и информационную значимость"""
         target = self.__get_target(**kwargs)
         assert column in self.columns
         assert len(self[target].unique()) == 2  # проверка target на бинарность (хороший/плохой)
@@ -231,25 +218,14 @@ class DataFrame(pd.DataFrame):
         result = {column + '_woe': np.full(self.shape[0], np.nan), column + '_iv': np.full(self.shape[0], np.nan)}
         for i, row in self[[column, target]].iterrows():
             row = row.to_numpy()[0]  # текущая категория
-            result[column + '_woe'][i] = np.log((n_categories[(row, good)] / Ngood) / (n_categories[(row, bad)] / Nbad))
-            result[column + '_iv'][i] = ((n_categories[(row, good)] / Ngood) - (n_categories[(row, bad)] / Nbad)) * \
-                                        result[column + '_woe'][
-                                            i]
+            percent_bad, percent_good = (n_categories[(row, bad)] / Nbad), (n_categories[(row, good)] / Ngood)
+            result[column + '_woe'][i] = np.log(percent_good / percent_bad)
+            result[column + '_iv'][i] = (percent_good - percent_bad) * result[column + '_woe'][i]
 
         total_information_value = np.sum(result[column + '_iv'])
         print(f'total information value: {total_information_value}')
 
-        if drop: self.drop(column, axis=1)
-        if inplace:
-            self.__init__(pd.concat([self, DataFrame(result)], axis=1))
-            self.target = target
-        else:
-            return DataFrame(result)
-
-    def encode_information_value(self, column: str, drop=False, inplace=False, **kwargs) -> object | None:
-        """"""
-        target = self.__get_target(**kwargs)
-        assert column in self.columns
+        return self.__drop_inplace(drop, inplace, DataFrame(result), column)
 
     def polynomial_features(self, columns: list[str] | tuple[str], degree: int, include_bias=False):
         """Полиномирование признаков"""
@@ -1497,21 +1473,22 @@ class DataFrame(pd.DataFrame):
 def main(*args):
     """Тестирование"""
     if True:
-        from sklearn.datasets import load_breast_cancer
+        # from sklearn.datasets import load_breast_cancer
 
-        data = load_breast_cancer(as_frame=True)
-        df = pd.concat([data.data, data.target], axis=1)
+        # data = load_breast_cancer(as_frame=True)
+        # df = pd.concat([data.data, data.target], axis=1)
+        df = pd.read_csv('titanic.csv', sep=',')
         df = DataFrame(df)
         print(df)
 
         if 1:
-            print(Fore.YELLOW + f'{DataFrame.underline_columns.__name__}' + Fore.RESET)
+            print(Fore.YELLOW + f'{DataFrame.columns_case.__name__}' + Fore.RESET)
             print(df.columns)
-            df.underline_columns()
+            df.columns_case('snake')
             print(df.columns)
 
         if 1:
-            target = "target"
+            target = "Survived"
             df.target = target
 
         if 1:
@@ -1522,8 +1499,8 @@ def main(*args):
 
         if 1:
             print(Fore.YELLOW + f'{DataFrame.__getitem__.__name__}' + Fore.RESET)
-            print(df['mean_radius'])
-            print(df[['mean_radius', 'mean_texture']])
+            print(df['Survived'])
+            print(df[['Survived', 'Fare']])
 
         if 1:
             print(Fore.YELLOW + f'{DataFrame.isna.__name__}' + Fore.RESET)
@@ -1531,11 +1508,11 @@ def main(*args):
 
         if 1:
             print(Fore.YELLOW + f'{DataFrame.encode_woe_iv.__name__}' + Fore.RESET)
-            print(df.encode_woe_iv('mean_radius'))
-            print(df.encode_woe_iv('mean_radius', target=target))
-            print(df.encode_woe_iv('mean_radius', inplace=True))
-            print(df.encode_woe_iv('mean_radius', drop=True))
-            print(df.encode_woe_iv('mean_radius', drop=True, inplace=True))
+            print(df.encode_woe_iv('Pclass'))
+            print(df.encode_woe_iv('Pclass', target=target))
+            print(df.encode_woe_iv('Pclass', inplace=True))
+            print(df.__deepcopy__().encode_woe_iv('Pclass', drop=True))
+            print(df.encode_woe_iv('Pclass', drop=True, inplace=True))
 
         if 0:
             print(Fore.YELLOW + f'{DataFrame.encode_woe_iv.__name__}' + Fore.RESET)
