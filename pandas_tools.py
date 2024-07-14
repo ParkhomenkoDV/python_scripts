@@ -1,7 +1,3 @@
-"""
-
-"""
-
 import os
 import sys
 from tqdm import tqdm
@@ -103,12 +99,14 @@ class DataFrame(pd.DataFrame):
         else:
             return DataFrame(super().__getitem__(item), target=self.target)  # DataFrame
 
-    # TODO из родительского класса
-    def __copy__(self):
+    def copy(self, deep: bool = False):
         """Возвращение копии DataFrame типа DataFrame"""
-        return DataFrame(super().__copy__(), target=self.target)
+        if deep:
+            return DataFrame(super().__deepcopy__(), target=self.target)
+        else:
+            return DataFrame(super().__copy__(), target=self.target)
 
-    def __deepcopy__(self):
+    def deepcopy(self):
         """Возвращение глубокой копии DataFrame типа DataFrame"""
         return DataFrame(super().__copy__(), target=self.target)
 
@@ -134,15 +132,30 @@ class DataFrame(pd.DataFrame):
         return target
 
     def columns_case(self, animal: str) -> None:
-        """Замена пробелов в названии столбцов нижним подчеркиванием _"""
+        """Приведение названия столбцов к snake/camel case"""
+
         assert isinstance(animal, str)
         animal = animal.strip().lower()
-        if animal == 'snake':
-            for column in self.columns: self.rename(columns={column: column.replace(' ', '_')}, inplace=True)
-        elif animal == 'camel':
-            for column in self.columns: self.rename(columns={column: column.capitalize()}, inplace=True)
-        else:
-            raise Exception('animal not in ("snake", "camel")')
+
+        for column in self.columns:
+            result, temp = list(), ''
+            for c in column:
+                if c in ('_', ' '):
+                    temp and result.append(temp)
+                    temp = ''
+                elif c.isupper():
+                    temp and result.append(temp)
+                    temp = c
+                else:
+                    temp += c
+            temp and result.append(temp)
+
+            if animal == 'snake':
+                self.rename(columns={column: '_'.join([r.lower() for r in result])}, inplace=True)
+            elif animal == 'camel':
+                self.rename(columns={column: ''.join([r.capitalize() for r in result])}, inplace=True)
+            else:
+                raise Exception('animal not in ("snake", "camel")')
 
     def __drop_inplace(self, drop: bool, inplace: bool, df, column: str) -> object | None:
         """"""
@@ -1488,7 +1501,7 @@ def main(*args):
             print(df.columns)
 
         if 1:
-            target = "Survived"
+            target = "survived"
             df.target = target
 
         if 1:
@@ -1499,8 +1512,8 @@ def main(*args):
 
         if 1:
             print(Fore.YELLOW + f'{DataFrame.__getitem__.__name__}' + Fore.RESET)
-            print(df['Survived'])
-            print(df[['Survived', 'Fare']])
+            print(df['survived'])
+            print(df[['survived', 'fare']])
 
         if 1:
             print(Fore.YELLOW + f'{DataFrame.isna.__name__}' + Fore.RESET)
