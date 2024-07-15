@@ -125,4 +125,3 @@ for i, row in enumerate(display):
 
 print(max_count, max_row)
 '''
-True and print(True)
