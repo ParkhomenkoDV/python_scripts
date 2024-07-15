@@ -16,3 +16,5 @@ imblearn
 catboost
 shap
 
+opencv-python
+
