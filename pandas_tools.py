@@ -108,7 +108,7 @@ class DataFrame(pd.DataFrame):
 
     def deepcopy(self):
         """Возвращение глубокой копии DataFrame типа DataFrame"""
-        return DataFrame(super().__copy__(), target=self.target)
+        return DataFrame(super().__deepcopy__(), target=self.target)
 
     @property
     def target(self) -> str:
@@ -133,7 +133,6 @@ class DataFrame(pd.DataFrame):
 
     def columns_case(self, animal: str) -> None:
         """Приведение названия столбцов к snake/camel case"""
-
         assert isinstance(animal, str)
         animal = animal.strip().lower()
 
@@ -158,9 +157,10 @@ class DataFrame(pd.DataFrame):
                 raise Exception('animal not in ("snake", "camel")')
 
     def __drop_inplace(self, drop: bool, inplace: bool, df, column: str) -> object | None:
-        """"""
+        """Вспомогательный метод для drop и inplace ключей"""
         assert isinstance(drop, bool)
         assert isinstance(inplace, bool)
+        # assert column in self.columns # проверка была ранее
 
         drop and self.__init__(self.drop(column, axis=1), target=self.target)
         if inplace:
@@ -240,7 +240,7 @@ class DataFrame(pd.DataFrame):
 
         return self.__drop_inplace(drop, inplace, DataFrame(result), column)
 
-    def polynomial_features(self, columns: list[str] | tuple[str], degree: int, include_bias=False):
+    def polynomial_features(self, columns: list[str] | tuple[str] | np.ndarray[str], degree: int, include_bias=False):
         """Полиномирование признаков"""
         assert type(columns) in (list, tuple)
         assert all(map(lambda column: column in self.columns, columns))
@@ -373,25 +373,20 @@ class DataFrame(pd.DataFrame):
         else:
             return df
 
-    def distribution(self, columns: list[str] | tuple[str]) -> dict[str:dict[str:float]]:
-        """Определение распределения атрибутов"""
-        assert type(columns) in (list, tuple)
-        assert all(map(lambda column: column in self.columns, columns))
+    def distribution(self, column: str) -> dict[str:float]:
+        """Определение распределения атрибута"""
+        assert column in self.columns
 
-        result = dict()
-        for column in columns:
-            skew, kurtosis = self[column].skew(), self[column].kurtosis()  # перекос и острота
-            _, shapiro_pvalue = stats.shapiro(self[column])  # Шапиро
-            _, ks_pvalue = stats.kstest(self[column], 'norm')  # Колмогоров-Смирнов
-            result[column] = {'skew': skew, 'kurtosis': kurtosis, 'normal': abs(skew) <= 2 and abs(kurtosis) <= 7,
-                              'shapiro_pvalue': shapiro_pvalue, 'ks_pvalue': ks_pvalue}
-        return result
+        skew, kurtosis = self[column].skew(), self[column].kurtosis()  # перекос и острота
+        _, shapiro_pvalue = stats.shapiro(self[column])  # Шапиро
+        _, ks_pvalue = stats.kstest(self[column], 'norm')  # Колмогоров-Смирнов
+        return {'skew': skew, 'kurtosis': kurtosis, 'normal': abs(skew) <= 2 and abs(kurtosis) <= 7,
+                'shapiro_pvalue': shapiro_pvalue, 'ks_pvalue': ks_pvalue}
 
-    def variation_coefficient(self, columns: list[str] | tuple[str]) -> dict[str:float]:
+    def variation_coefficient(self, column: str) -> float:
         """Коэффициент вариации = мера разброса данных"""
-        assert type(columns) in (list, tuple)
-        assert all(map(lambda column: column in self.columns, columns))
-        return {column: self[column].std() / self[column].mean() for column in columns}
+        assert column in self.columns
+        return self[column].std() / self[column].mean()
 
     def detect_outliers(self, method: str = 'sigma', **kwargs):
         """Обнаружение выбросов статистическим методом"""
@@ -894,7 +889,6 @@ class DataFrame(pd.DataFrame):
         """Выявление категориальных признаков"""
         return self.select_dtypes(['object', 'category']).columns.to_list()
 
-    # TODO: os.remove('catboost_info' if exists)
     def catboost_importance_features(self, returns='dict', **kwargs) -> dict[str: float] | object:
         """Важные признаки для CatBoost"""
         target = self.__get_target(**kwargs)
@@ -927,6 +921,9 @@ class DataFrame(pd.DataFrame):
                                           verbose=kwargs.pop('verbose', 1))
             except Exception as exception:
                 print(exception)
+
+            if os.path.exists('./catboost_info'):
+                os.rmdir('catboost_info')
 
             if returns == 'dict':
                 return self.__catboost_model.get_feature_importance(prettified=True) \
@@ -1415,6 +1412,7 @@ class DataFrame(pd.DataFrame):
             plt.show()'''
 
     def histplot(self, bins=40, **kwargs):
+        """Построение гистограммы"""
         self.hist(figsize=kwargs.get('figsize', (12, 12)), bins=bins)
         if kwargs.get('savefig', False): export2(plt, file_name=kwargs.get('title', 'histplot'), file_extension='png')
 
@@ -1521,11 +1519,10 @@ def main(*args):
 
         if 1:
             print(Fore.YELLOW + f'{DataFrame.encode_woe_iv.__name__}' + Fore.RESET)
-            print(df.encode_woe_iv('Pclass'))
-            print(df.encode_woe_iv('Pclass', target=target))
-            print(df.encode_woe_iv('Pclass', inplace=True))
-            print(df.__deepcopy__().encode_woe_iv('Pclass', drop=True))
-            print(df.encode_woe_iv('Pclass', drop=True, inplace=True))
+            print(df.encode_woe_iv('pclass'))
+            print(df.encode_woe_iv('pclass', target=target))
+            print(df.encode_woe_iv('pclass', inplace=True))
+            print(df.encode_woe_iv('pclass', drop=True, inplace=True))
 
         if 0:
             print(Fore.YELLOW + f'{DataFrame.encode_woe_iv.__name__}' + Fore.RESET)
