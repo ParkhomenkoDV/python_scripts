@@ -38,6 +38,19 @@ def find(name: str, path: str = os.getcwd()) -> list[str]:
     return result
 
 
+def clear_path(path: str):
+    """Удаление файлов и директории по пути"""
+    for file in os.listdir(path):
+        file_path = os.path.join(path, file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                clear_path(file_path)
+        except Exception as e:
+            print(f"Failed to delete {file_path}. Reason: {e}")
+
+
 def derivative(f, a: int | float, method: str = 'central', dx: float = 0.01):
     """Compute the difference formula for f'(a) with step size h.
 
@@ -68,15 +81,6 @@ def derivative(f, a: int | float, method: str = 'central', dx: float = 0.01):
         return (f(a) - f(a - dx)) / dx
     else:
         raise ValueError('Method must be "central", "forward" or "backward"!')
-
-
-def imshow(img, **kwargs):
-    """Демонстрация изображения при помощи matplotlib"""
-    plt.figure(figsize=kwargs.get('figsize', (12, 12)))
-    plt.imshow(img.numpy().astype("uint8"))
-    plt.title(kwargs.get('title', 'image'))
-    plt.axis("off")
-    plt.show()
 
 
 def smoothing(x, y):
@@ -343,7 +347,6 @@ def check_brackets(s) -> bool:
 
 
 def correlation(data, method='pearson', dropna=False, **kwargs):
-
     assert type(method) is str, 'type(method) is str'
     assert method.strip().lower() in ('pearson', 'kendall', 'spearman'), \
         'method must be "pearson" or "kendall" or "spearman"!'
@@ -544,6 +547,10 @@ def input_clever(message: str = ''):
 
 
 if __name__ == '__main__':
+
+    clear_path('t')
+    exit()
+
     run_cpu_tasks_in_parallel((test_f1,), (test_f2,))
     run_thread_tasks_in_parallel((test_f1,), (test_f2,))
 
