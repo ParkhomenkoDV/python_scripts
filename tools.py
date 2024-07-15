@@ -38,17 +38,24 @@ def find(name: str, path: str = os.getcwd()) -> list[str]:
     return result
 
 
-def clear_path(path: str):
-    """Удаление файлов и директории по пути"""
-    for file in os.listdir(path):
-        file_path = os.path.join(path, file)
+def clear_dir(dir: str):
+    """Удаление файлов и директории в указанной директории"""
+    assert isinstance(dir, str), f'"{dir}" is  not str'
+    assert os.path.exists(dir), f'"{dir}" not exists'
+    assert os.path.isdir(dir), f'"{dir}" is nor a directory'
+
+    for file in os.listdir(dir):
+        path = os.path.join(dir, file)
         try:
-            if os.path.isfile(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                clear_path(file_path)
-        except Exception as e:
-            print(f"Failed to delete {file_path}. Reason: {e}")
+            if os.path.isfile(path):
+                os.remove(path)
+            elif os.path.isdir(path):
+                clear_dir(path)
+                os.rmdir(path)
+            else:
+                raise Exception(f'"{path}" is not a file or a directory')
+        except Exception as exception:
+            print(f"Failed to delete {path}. Reason: {exception}")
 
 
 def derivative(f, a: int | float, method: str = 'central', dx: float = 0.01):
@@ -547,8 +554,7 @@ def input_clever(message: str = ''):
 
 
 if __name__ == '__main__':
-
-    clear_path('t')
+    clear_dir('t')
     exit()
 
     run_cpu_tasks_in_parallel((test_f1,), (test_f2,))
