@@ -72,7 +72,7 @@ import pymorphy2 as pymorphy  # model = pymorphy.MorphAnalyzer'''
 
 # частные библиотеки
 import decorators
-from tools import export2
+from tools import export2, clear_dir
 
 
 class DataFrame(pd.DataFrame):
@@ -282,6 +282,7 @@ class DataFrame(pd.DataFrame):
         analyzer = analyzer.strip().lower()
         assert analyzer in ("word", "char", "char_wb"), 'analyzer in ("word", "char", "char_wb")'
 
+    # TODO а чем отличается от count encoder?
     def vectorize_count(self, columns: list[str], drop=False, inplace=False, **kwargs):
         """Количественная векторизация токенов"""
         assert type(columns) in (list, tuple)
@@ -923,7 +924,8 @@ class DataFrame(pd.DataFrame):
                 print(exception)
 
             if os.path.exists('./catboost_info'):
-                os.rmdir('catboost_info')
+                clear_dir('./catboost_info')  # очистка НЕ пустой папки
+                os.rmdir('catboost_info')  # удаление пустой папки
 
             if returns == 'dict':
                 return self.__catboost_model.get_feature_importance(prettified=True) \
@@ -1242,8 +1244,8 @@ class DataFrame(pd.DataFrame):
                                                 categorical_features=categorical_features,
                                                 n_jobs=n_jobs,
                                                 categorical_encoder=categorical_encoder)
-                changed_data, changed_labels = sampler.fit_resample(df, df[target])
-                return pd.DataFrame(changed_data, changed_labels, columns=df.columns)
+                changed_data, changed_labels = sampler.fit_resample(self, self[target])
+                return pd.DataFrame(changed_data, changed_labels, columns=self.columns)
             case 'SMOTEN':
                 sampler = over_sampling.SMOTEN(random_state=random_state,
                                                sampling_strategy=sampling_strategy,
@@ -1251,8 +1253,8 @@ class DataFrame(pd.DataFrame):
                                                n_jobs=n_jobs,
                                                categorical_encoder=categorical_encoder)
 
-        changed_data, changed_labels = sampler.fit_resample(df.to_numpy(), df[target].to_numpy())
-        return pd.DataFrame(changed_data, changed_labels, columns=df.columns)
+        changed_data, changed_labels = sampler.fit_resample(self.to_numpy(), self[target].to_numpy())
+        return pd.DataFrame(changed_data, changed_labels, columns=self.columns)
 
     @decorators.try_except('pass')
     def pca(self, n_components: int, inplace=False, **kwargs):
