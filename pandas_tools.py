@@ -82,6 +82,19 @@ class DataFrame(pd.DataFrame):
     @classmethod
     def version(cls) -> str:
         version = '7.0'
+        print('set_caption')
+        print('classification test binary')
+        print('classification test multiclass')
+        print('regression test')
+        print('clusterizing test')
+        print('ranking test')
+        print('ohe encoder')
+        print('ordinal encoder')
+        print('woe iv encoder')
+        print('tf_idf encoder')
+        print('count encoder')
+        print('сравнение с векторизатором')
+        print('fillna')
 
         return version
 
@@ -445,23 +458,19 @@ class DataFrame(pd.DataFrame):
         outliers['outlier'] = outliers['probability'] < (1 - threshold)
         return self[outliers['outlier']].sort_index()
 
-    def confidence_interval(self, columns: list[str] | tuple[str], confidence: float) -> dict[str: tuple]:
+    def confidence_interval(self, column: str, confidence: float) -> tuple[float, float, float]:
         """Доверительный интервал"""
-        assert type(columns) in (list, tuple)
-        assert all(map(lambda column: column in self.columns, self.columns))
+        assert column in self.columns
         assert type(confidence) is float and 0 <= confidence <= 1
 
-        result = dict()
-        for column in columns:
-            n = len(self[column])
-            assert 30 < n  # предел верности формулы
-            mean, sem = np.mean(self[column]), stats.sem(self[column])  # = sigma/sqrt(n)
-            if self.distribution([column])[column]['normal']:
-                l, u = stats.norm.interval(confidence=confidence, loc=mean, scale=sem)
-            else:
-                l, u = stats.t.interval(confidence=confidence, loc=mean, scale=sem, df=n - 1)
-            result[column] = l, mean, u
-        return result
+        n = len(self[column])
+        assert 30 < n  # предел верности формулы
+        mean, sem = np.mean(self[column]), stats.sem(self[column])  # = sigma/sqrt(n)
+        if self.distribution(column)['normal']:
+            l, u = stats.norm.interval(confidence=confidence, loc=mean, scale=sem)
+        else:
+            l, u = stats.t.interval(confidence=confidence, loc=mean, scale=sem, df=n - 1)
+        return l, mean, u
 
     def test(self, A: str, B: str, relationship: bool, method: str = 't') -> tuple:
         """Тест-сравнение вариации двух выборок (есть ли отличия?)"""
@@ -1485,20 +1494,31 @@ class DataFrame(pd.DataFrame):
 
 def main(*args):
     """Тестирование"""
-    if True:
+    print(Fore.YELLOW + f'{pd.read_csv.__name__}' + Fore.RESET)
+    df = pd.read_csv('datas/external/movies.csv', sep=',', low_memory=False)
+    df = DataFrame(df)
+    print(df)
+
+    if 1:
+        print(Fore.YELLOW + f'{DataFrame.columns_case.__name__}' + Fore.RESET)
+        print(df.columns)
+        df.columns_case('Camel')
+        print(df.columns)
+        df.columns_case('snake')
+        print(df.columns)
+
+    if 1:
+        print(df['adult'].unique())
+        df = df[(df['adult'] == 'True') | (df['adult'] == 'False')]
+        print(df['adult'].unique())
+        df['adult'] = df['adult'].map({'False': False, 'True': True})
+        print(df['adult'].unique())
+
+    if 'classification' in args:
         # from sklearn.datasets import load_breast_cancer
 
         # data = load_breast_cancer(as_frame=True)
         # df = pd.concat([data.data, data.target], axis=1)
-        df = pd.read_csv('titanic.csv', sep=',')
-        df = DataFrame(df)
-        print(df)
-
-        if 1:
-            print(Fore.YELLOW + f'{DataFrame.columns_case.__name__}' + Fore.RESET)
-            print(df.columns)
-            df.columns_case('snake')
-            print(df.columns)
 
         if 1:
             target = "survived"
@@ -1571,13 +1591,7 @@ def main(*args):
             print(Fore.YELLOW + f'{DataFrame.corrplot.__name__}' + Fore.RESET)
             df.corrplot(2)
 
-    if False:
-        from sklearn.datasets import fetch_california_housing
-
-        data = fetch_california_housing(as_frame=True)
-        df = pd.concat([data.data, data.target], axis=1)
-        df = DataFrame(df)
-        print(df)
+    if 'regression' in args:
 
         if 1:
             target = "MedHouseVal"
@@ -1699,4 +1713,4 @@ def main(*args):
 if __name__ == '__main__':
     import cProfile
 
-    main()
+    main('classification', 'regression', 'clustering', 'ranking')
