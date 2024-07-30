@@ -482,7 +482,7 @@ class DataFrame(pd.DataFrame):
         assert type(method) is str
         method = method.strip().lower()
 
-        if self.distribution([A])[A]['normal'] and self.distribution([B])[B]['normal']:
+        if self.distribution(A)['normal'] and self.distribution(B)['normal']:
             if relationship:
                 return stats.ttest_rel(self[A], self[B])
             else:
@@ -491,7 +491,7 @@ class DataFrame(pd.DataFrame):
         else:
             if method == 't':
                 for column in (A, B):
-                    if not self.distribution([column])[column]['normal']:
+                    if not self.distribution(column)['normal']:
                         print(Fore.RED + f'Выборка {column} ненормальная!' + Fore.RESET)
                         print(Fore.YELLOW + f'Рекомендуется numpy.log2(abs(DataFrame.{column}) + 1)' + Fore.RESET)
                         return None, None
@@ -510,7 +510,7 @@ class DataFrame(pd.DataFrame):
         assert type(method) is str
         method = method.strip().lower()
 
-        if all(map(lambda column: self.distribution([column])[column]['normal'], columns)):
+        if all(map(lambda column: self.distribution(column)['normal'], columns)):
             if method == 'f':
                 return stats.f_oneway(*[self[column] for column in columns])  # f, pvalue
             elif method == 'tukey':
@@ -893,6 +893,11 @@ class DataFrame(pd.DataFrame):
                 self.__init__(x_reduced)
             else:
                 return x_reduced
+
+    @property
+    def numeric_features(self) -> list[str]:
+        """Выявление числовых признаков"""
+        return self.select_dtypes(['int', 'float']).columns.to_list()
 
     @property
     def categorical_features(self) -> list[str]:
