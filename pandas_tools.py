@@ -897,7 +897,7 @@ class DataFrame(pd.DataFrame):
     @property
     def numeric_features(self) -> list[str]:
         """Выявление числовых признаков"""
-        return self.select_dtypes(['int', 'float']).columns.to_list()
+        return self.select_dtypes(['int', 'float', 'bool']).columns.to_list()
 
     @property
     def categorical_features(self) -> list[str]:
