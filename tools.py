@@ -1,13 +1,12 @@
 import sys
 import os
-from decorators import timeit
 import numpy as np
 from numpy import array, nan, isnan, inf, isinf, arange, linspace, matmul, resize
 from numpy.linalg import norm
 from math import radians, degrees, sqrt, sin, cos, tan, atan, pi, ceil, floor, log10, gcd
+from tqdm import tqdm
 import multiprocessing as mp
 import threading as th
-from tqdm import tqdm
 
 import pandas as pd
 import polars as pl
@@ -18,9 +17,8 @@ import seaborn as sns
 from scipy import interpolate, integrate
 import time
 from colorama import Fore
-import colorama
 
-colorama.init(autoreset=True)
+from decorators import timeit
 
 
 def find(name: str, path: str = os.getcwd()) -> list[str]:
