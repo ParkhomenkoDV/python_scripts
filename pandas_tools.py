@@ -101,8 +101,7 @@ class DataFrame(pd.DataFrame):
     def __init__(self, *args, **kwargs):
         target = kwargs.pop('target', '')  # извлечение имени целевой колонки для передачи чистых данных в super()
         super(DataFrame, self).__init__(*args, **kwargs)
-        assert target in self.columns or target == ''  # проверка target до объявления __get_target
-        self.__target = target
+        self.__target = target if target in self.columns else ''  # при вырезании target он автоматически забывается
 
     def __getitem__(self, item):
         """Возвращение DataFrame типа DataFrame от колонок"""
