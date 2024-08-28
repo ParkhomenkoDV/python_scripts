@@ -61,7 +61,8 @@ from imblearn import under_sampling, over_sampling
 
 import shap
 
-'''import nltk
+'''
+import nltk
 
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -110,17 +111,6 @@ class DataFrame(pd.DataFrame):
             return super().__getitem__(item)  # pd.Series
         else:
             return DataFrame(super().__getitem__(item), target=self.target)  # DataFrame
-
-    def copy(self, deep: bool = False):
-        """Возвращение копии DataFrame типа DataFrame"""
-        if deep:
-            return DataFrame(super().__deepcopy__(), target=self.target)
-        else:
-            return DataFrame(super().__copy__(), target=self.target)
-
-    def deepcopy(self):
-        """Возвращение глубокой копии DataFrame типа DataFrame"""
-        return DataFrame(super().__deepcopy__(), target=self.target)
 
     @property
     def target(self) -> str:
@@ -568,7 +558,7 @@ class DataFrame(pd.DataFrame):
 
         # TODO: multiprocessing
         l1_models = list()
-        for alpha in tqdm(l1, desc='Fitting L1-models', colour='red', leave=True):
+        for alpha in tqdm(l1, desc='Fitting L1-models', leave=True):
             model = Lasso(alpha=alpha,
                           max_iter=kwargs.pop('max_iter', 1_000),
                           tol=kwargs.pop('tol', 0.000_1),
