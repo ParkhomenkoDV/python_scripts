@@ -112,6 +112,8 @@ class DataFrame(pd.DataFrame):
         else:
             return DataFrame(super().__getitem__(item), target=self.target)  # DataFrame
 
+    #  def copy(self, deep=False):  # не работает в виду блокировки наследования данной функции у pandas
+
     @property
     def target(self) -> str:
         return self.__target
