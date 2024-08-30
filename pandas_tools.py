@@ -1391,10 +1391,11 @@ class DataFrame(pd.DataFrame):
     def corrplot(self, fmt=3, **kwargs):
         """Тепловая карта матрицы корреляции"""
         assert type(fmt) is int and fmt >= 0
+        corr = self.corr()
         plt.figure(figsize=kwargs.get('figsize', (12, 12)))
         plt.title(kwargs.get('title', 'corrplot'), fontsize=16, fontweight='bold')
-        sns.heatmap(self.corr(), annot=True, fmt=f'.{fmt}f', annot_kws={'rotation': 45}, cmap='RdYlGn', square=True,
-                    vmin=-1, vmax=1)
+        sns.heatmap(corr, mask=np.triu(np.ones_like(corr, dtype=bool)),
+                    annot=True, fmt=f'.{fmt}f', annot_kws={'rotation': 45}, cmap='RdYlGn', square=True, vmin=-1, vmax=1)
         plt.show()
         if kwargs.get('savefig', False): export2(plt, file_name=kwargs.get('title', 'corrplot'), file_extension='png')
 
