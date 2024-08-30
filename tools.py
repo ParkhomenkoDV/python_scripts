@@ -1,10 +1,16 @@
-import sys
 import os
-import numpy as np
-from numpy import array, nan, isnan, inf, isinf, arange, linspace, matmul, resize
-from numpy.linalg import norm
-from math import radians, degrees, sqrt, sin, cos, tan, atan, pi, ceil, floor, log10, gcd
+import sys
 from tqdm import tqdm
+from colorama import Fore
+
+import numpy as np
+from numpy import array, arange, linspace
+from numpy import nan, isnan, inf, isinf, matmul, resize, pi, sqrt
+from numpy import sin, cos, tan, atan
+from math import radians, degrees, ceil, floor, log10, gcd
+
+from scipy import interpolate, integrate
+
 import multiprocessing as mp
 import threading as th
 
@@ -14,9 +20,7 @@ import polars as pl
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from scipy import interpolate, integrate
 import time
-from colorama import Fore
 
 from decorators import timeit
 
@@ -56,54 +60,72 @@ def clear_dir(dir: str):
             print(f"Failed to delete {path}. Reason: {exception}")
 
 
-def derivative(f, a: int | float, method: str = 'central', dx: float = 0.01):
-    """Compute the difference formula for f'(a) with step size h.
+def derivative(f, x0: int | float, method: str = 'central', dx: float = 1e-6) -> float:
+    """
+    Производная функции f в точке x0
 
     Parameters
     ----------
     f : function
         Vectorized function of one variable
-    a : number
+    x0 : number
         Compute derivative at x = a
     method : string
-        Difference formula: 'forward', 'backward' or 'central'
+        Difference formula:
+        'central': f(a+h) - f(a-h))/2h
+        'forward': f(a+h) - f(a))/h
+        'backward': f(a) - f(a-h))/h
+
     dx : number
         Step size in difference formula
-
-    Returns
-    -------
-    float
-        Difference formula:
-            central: f(a+h) - f(a-h))/2h
-            forward: f(a+h) - f(a))/h
-            backward: f(a) - f(a-h))/h            
     """
+
     if method == 'central':
-        return (f(a + dx / 2) - f(a - dx / 2)) / dx
+        return (f(x0 + dx / 2) - f(x0 - dx / 2)) / dx
     elif method == 'forward':
-        return (f(a + dx) - f(a)) / dx
+        return (f(x0 + dx) - f(x0)) / dx
     elif method == 'backward':
-        return (f(a) - f(a - dx)) / dx
+        return (f(x0) - f(x0 - dx)) / dx
     else:
-        raise ValueError('Method must be "central", "forward" or "backward"!')
+        raise ValueError('method must be "central", "forward" or "backward"!')
 
 
-def smoothing(x, y):
-    p = np.poly1d(np.polyfit(x, y, 3))
+def smoothing(x, y, deg: int):
+    """Сглаживание кривой полиномом степени deg"""
+    p = np.poly1d(np.polyfit(x, y, deg))
     y_smooth = p(x)
+    return y_smooth
 
 
-def dist(p1, p2) -> float:
+def dist(p1: tuple, p2: tuple) -> float:
+    """Декартово расстояние между 2D точками"""
+    assert isinstance(p1, (tuple, list)) and isinstance(p2, (tuple, list))
+    assert len(p1) == 2 and len(p2) == 2
     return sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
-    # return norm(array(p1) - array(p2))
+    # return np.linalg.norm(array(p1) - array(p2))
 
 
-def dist2line(x0, y0, A, B, C) -> float:
+def dist2line(point: tuple, ABC: tuple) -> float:
     """Расстояние от точки до прямой"""
-    return abs(A * x0 + B * y0 + C) / sqrt(A ** 2 + B ** 2)
+    assert isinstance(point, (tuple, list))
+    assert isinstance(ABC, (tuple, list))
+    assert len(point) == 2
+    assert len(ABC) == 3
+    return abs(ABC[0] * point[0] + ABC[1] * point[1] + ABC[2]) / sqrt(ABC[0] ** 2 + ABC[1] ** 2)
 
 
-def cot(x) -> float:
+def line_coefs(func=None, x0=None, p1=None, p2=None) -> tuple[float, float, float]:
+    """Коэффициенты A, B, C касательной в точке x0 кривой f или прямой, проходящей через точки p1 и p2"""
+    if func is not None and x0 is not None:
+        df_dx = derivative(func, x0)
+        return df_dx, -1, func(x0) - df_dx * x0
+    elif p1 is not None and p2 is not None:
+        return (p2[1] - p1[1]) / (p2[0] - p1[0]), -1, (p2[0] * p1[1] - p1[0] * p2[1]) / (p2[0] - p1[0])
+    else:
+        raise ValueError('func, x0, p1, p2 must not be None!')
+
+
+def cot(x: float | int) -> float:
     """Котангенс"""
     return 1 / tan(x) if tan(x) != 0 else inf
 
@@ -143,13 +165,6 @@ def av3D(F, T1, T2, P1, P2):
         raise ValueError
 
 
-def get_file_name_extension(file_path):
-    if os.path.isfile(file_path):
-        return os.path.splitext(file_path)
-    else:
-        print()
-
-
 def eps(type_eps: str, x1: float | int, x2: float | int) -> float:
     """Погрешность"""
     if type_eps == 'rel':
@@ -157,7 +172,10 @@ def eps(type_eps: str, x1: float | int, x2: float | int) -> float:
             return (x2 - x1) / x1  # относительная
         except ZeroDivisionError:
             return inf
-    if type_eps == 'abs': return x2 - x1  # абсолютная
+    elif type_eps == 'abs':
+        return x2 - x1  # абсолютная
+    else:
+        raise ValueError('type_eps must be "rel" or "abs"!')  # непонятная
 
 
 def coprime(a: int, b: int) -> bool:
@@ -180,7 +198,7 @@ def export2(data, file_path='exports', file_name='export_file', file_extension='
     os.makedirs(file_path, exist_ok=True)
     file_path = os.getcwd() + '/' + file_path
 
-    сtime = ' ' + time.strftime('%y-%m-%d %H-%M-%S', time.localtime()) if show_time is True else ''
+    сtime = ' ' + time.strftime('%y-%m-%d-%H-%M-%S', time.localtime()) if show_time is True else ''
 
     print(Fore.YELLOW + f'"{file_path}/{file_name}{сtime}.{file_extension}" file exporting', end='')
     if type(data) is pd.DataFrame:
@@ -329,17 +347,14 @@ class Axis:
         pass
 
 
-def COOR(A1, C1, A2, C2): return (C1 - C2) / (A2 - A1), (A2 * C1 - A1 * C2) / (A2 - A1)
+def COOR(A1, C1, A2, C2) -> tuple[float, float]:
+    """Точка пересечения прямых с коэффициентами (A1, C1) и (A2, C2)"""
+    return (C1 - C2) / (A2 - A1), (A2 * C1 - A1 * C2) / (A2 - A1)
 
 
-def LINE(p1, p2) -> dict[str: float]:
-    """Нахождение коэффициентов A, B, C прямой по двум точкам p1 и p2"""
-    return {'A': (p2[1] - p1[1]) / (p2[0] - p1[0]), 'B': -1, 'C': (p2[0] * p1[1] - p1[0] * p2[1]) / (p2[0] - p1[0])}
-
-
-def check_brackets(s) -> bool:
+def check_brackets(s: str) -> bool:
     """Проверка на верность постановки скобок"""
-    temp = []
+    temp = list()
     for i in s:
         if i in ('(', '{', '['):
             temp.append(i)
