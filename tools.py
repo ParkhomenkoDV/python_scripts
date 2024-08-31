@@ -5,8 +5,8 @@ from colorama import Fore
 
 import numpy as np
 from numpy import array, arange, linspace
-from numpy import nan, isnan, inf, isinf, matmul, resize, pi, sqrt
-from numpy import sin, cos, tan, atan
+from numpy import nan, isnan, inf, isinf, pi
+from numpy import sin, cos, tan, atan, sqrt, matmul, resize
 from math import radians, degrees, ceil, floor, log10, gcd
 
 from scipy import interpolate, integrate
