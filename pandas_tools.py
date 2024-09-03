@@ -650,23 +650,21 @@ class DataFrame(pd.DataFrame):
         else:
             raise Exception(f'{self.assert_sms} type(threshold) in (int, float)')
 
-    def permutation_importance(self, **kwargs):
+    def permutation_importance(self, estimator, **kwargs):
         """Перемешивающий метод"""
         target = self.__get_target(**kwargs)
         x, y = self.feature_target_split(target=target)
 
-        for model in (RandomForestClassifier(), RandomForestRegressor()):
-            try:
-                model.fit(x, y)
-            except Exception as exception:
-                continue
-            result = permutation_importance(model, x, y)
-            return pd.Series(result['importances_mean'], index=x.columns).sort_values(ascending=False)
+        estimator.fit(x, y)
+        result = permutation_importance(estimator, x, y,
+                                        n_repeats=kwargs.pop('n_repeats', 5),
+                                        max_samples=kwargs.pop('max_samples', 1.0))
+        return pd.Series(result['importances_mean'], index=x.columns).sort_values(ascending=False)
 
-    def permutation_importance_plot(self, **kwargs):
+    def permutation_importance_plot(self, estimator, **kwargs):
         """Перемешивающий метод на столбчатой диаграмме"""
         target = self.__get_target(**kwargs)
-        permutation_importance = self.permutation_importance(**kwargs).sort_values(ascending=True)
+        permutation_importance = self.permutation_importance(estimator, **kwargs).sort_values(ascending=True)
 
         plt.figure(figsize=kwargs.get('figsize', (9, 9)))
         plt.grid(kwargs.get('grid', True))
@@ -676,9 +674,9 @@ class DataFrame(pd.DataFrame):
         plt.barh(permutation_importance.index, permutation_importance)
         plt.show()
 
-    def select_permutation_importance_features(self, threshold: int | float, **kwargs) -> list[str]:
+    def select_permutation_importance_features(self, estimator, threshold: int | float, **kwargs) -> list[str]:
         """Выбор признаков перемешивающим методом"""
-        permutation_importance_features = self.permutation_importance(**kwargs)
+        permutation_importance_features = self.permutation_importance(estimator, **kwargs)
         if type(threshold) is int:  # количество выбираемых признаков
             assert 1 <= threshold <= len(permutation_importance_features), \
                 f'{self.assert_sms} 1 <= threshold <= {len(permutation_importance_features)}'
