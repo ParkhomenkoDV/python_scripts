@@ -903,6 +903,8 @@ class DataFrame(pd.DataFrame):
 
         catboost_params = {'iterations': kwargs.pop('iterations', 100),  # n_estimators
                            'learning_rate': kwargs.pop('learning_rate', 0.1),
+                           'rsm': kwargs.pop('rsm', None),
+                           'depth': kwargs.pop('depth', 15),
                            # 'Logloss': бинарная классификация, 'CrossEntropy': предсказания, 'MultiClass': многокласс
                            'loss_function': kwargs.pop('loss_function', 'Logloss'),
                            'custom_loss': kwargs.pop('custom_loss', tuple()),
@@ -945,7 +947,8 @@ class DataFrame(pd.DataFrame):
         feature_importance = dict(filter(lambda item: item[1] != 0, feature_importance.items()))
         feature_importance = dict(sorted(feature_importance.items(), key=lambda i: i[1]))
         plt.figure(figsize=kwargs.pop('figsize', (12, len(feature_importance) / 2.54 / 1.5)))
-        plt.xlabel('catboost_importance', fontsize=12)
+        plt.title(kwargs.pop('title', 'catboost_importance_features'), fontsize=14, fontweight='bold')
+        plt.xlabel('importance', fontsize=12)
         plt.ylabel('features', fontsize=12)
         plt.barh(feature_importance.keys(), feature_importance.values(), label='importance non-zero features')
         plt.legend(loc='lower right')

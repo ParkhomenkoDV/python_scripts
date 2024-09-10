@@ -130,6 +130,11 @@ def cot(x: float | int) -> float:
     return 1 / tan(x) if tan(x) != 0 else inf
 
 
+def tan2cos(tg):
+    """Преобразование тангенса в косинус"""
+    return sqrt(1 / (tg ** 2 + 1))
+
+
 # TODO
 def av(f, *borders) -> float:
     """Среднее интегральное значение"""
@@ -332,10 +337,10 @@ def rounding(s, n=0) -> float:
 class Axis:
 
     @staticmethod
-    def transform(x, y, x0=0, y0=0, alpha=0, scale=1):
+    def transform(x, y, x0=0, y0=0, angle=0, scale=1):
         """Перенос и поворот осей против часовой стрелки"""
-        res = scale * matmul(array(([cos(alpha), sin(alpha)],
-                                    [-sin(alpha), cos(alpha)])),
+        res = scale * matmul(array(([cos(angle), sin(angle)],
+                                    [-sin(angle), cos(angle)])),
                              array(([[x - x0],
                                      [y - y0]])))
         return res[0][0], res[1][0]
@@ -349,7 +354,7 @@ class Axis:
 
 def COOR(A1, C1, A2, C2) -> tuple[float, float]:
     """Точка пересечения прямых с коэффициентами (A1, C1) и (A2, C2)"""
-    return (C1 - C2) / (A2 - A1), (A2 * C1 - A1 * C2) / (A2 - A1)
+    return ((C1 - C2) / (A2 - A1), (A2 * C1 - A1 * C2) / (A2 - A1)) if (A2 - A1) != 0 else (inf, inf)
 
 
 def check_brackets(s: str) -> bool:
