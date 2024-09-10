@@ -1,4 +1,5 @@
 from functools import wraps, lru_cache, singledispatch
+import logging
 import warnings
 # from memory_profiler import profile as memit  # готовый декоратор для замера использования памяти
 from dataclasses import dataclass
@@ -64,8 +65,46 @@ def deprecated(sms: str):
     return decorator
 
 
+def logs(level: str):
+    """Обработка логов: ошибки и предупреждения, только ошибки, """
+
+    assert isinstance(level, str)
+    level = level.strip().upper()
+
+    def decorator(function):
+        @wraps(function)
+        def wrapper(*args, **kwargs):
+            logger = logging.getLogger(__name__)
+            if level == 'NOTSET':
+                logger.log(logging.NOTSET, 'log')
+                result = function(*args, **kwargs)
+            elif level == 'DEBUG':
+                logger.log(logging.DEBUG, 'log')
+                result = function(*args, **kwargs)
+            elif level == 'INFO':
+                logger.log(logging.INFO, 'log')
+                result = function(*args, **kwargs)
+            elif level == 'WARNING':
+                logger.log(logging.WARNING, 'log')
+                result = function(*args, **kwargs)
+            elif level == 'ERROR':
+                logger.log(logging.ERROR, 'log')
+                result = function(*args, **kwargs)
+            elif level == 'CRITICAL':
+                logger.log(logging.CRITICAL, 'log')
+                result = function(*args, **kwargs)
+            else:
+                raise Exception(f'level {level} not in {("NOTSET", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")}')
+            logger.log(logging.NOTSET, 'log')
+            return result
+
+        return wrapper
+
+    return decorator
+
+
 def warns(action: str):
-    """Обработка предупреждений: пропуск, игнорирование, исключение, печать"""
+    """Обработка предупреждений: пропуск (pass), игнорирование (ignore), исключение (raise)"""
 
     assert isinstance(action, str)
     action = action.strip().lower()
@@ -73,27 +112,18 @@ def warns(action: str):
     def decorator(function):
         @wraps(function)
         def wrapper(*args, **kwargs):
-
             if action == 'pass':
                 result = function(*args, **kwargs)
-                return result
-
             elif action == 'ignore':
                 warnings.filterwarnings('ignore')
                 result = function(*args, **kwargs)
-                warnings.filterwarnings('default')
-                return result
-
             elif action == 'raise':
                 warnings.filterwarnings('error')
                 result = function(*args, **kwargs)
-                warnings.filterwarnings('default')
-                return result
-
             else:
-                print(action)
-                result = function(*args, **kwargs)
-                return result
+                raise Exception(f'action {action} not in {("pass", "ignore", "raise")}')
+            warnings.filterwarnings('default')
+            return result
 
         return wrapper
 
