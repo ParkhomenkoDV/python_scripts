@@ -42,7 +42,7 @@ def population_stability_index(date_column, old, new, features=None):
 
     df_psi = pd.DataFrame({'features': features})  # насильный перевод всего в pandas
 
-    for name, df in zip(('old', 'new'), (old, new)):
+    for name, df in zip(('train', 'test'), (old, new)):
         for date in tqdm(sorted(df[date_column].unique()), desc=name):
             df_temp = df[df[date_column] == date]
             df_psi[f'{date} {name}'] = [psi(old[feature], df_temp[feature]) for feature in features]
