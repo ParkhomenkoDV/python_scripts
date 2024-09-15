@@ -137,7 +137,7 @@ def try_except(action: str = 'pass'):
     action = action.strip().lower()
     assert action in ("pass", "raise"), 'action in ("pass", "raise")'
 
-    def decor(function):
+    def decorator(function):
         @wraps(function)
         def wrapper(*args, **kwargs):
             try:
@@ -150,21 +150,23 @@ def try_except(action: str = 'pass'):
 
         return wrapper
 
-    return decor
+    return decorator
 
 
 def timeit(rnd=4):
     """Измерение времени выполнения ф-и"""
 
+    assert isinstance(rnd, int)
+
     def decorator(function):
         @wraps(function)
         def wrapper(*args, **kwargs):
             tic = time.perf_counter()
-            value = function(*args, **kwargs)
+            result = function(*args, **kwargs)
             tac = time.perf_counter()
             elapsed_time = tac - tic
             print(Fore.YELLOW + f'"{function.__name__}" elapsed {round(elapsed_time, rnd)} seconds' + Fore.RESET)
-            return value
+            return result
 
         return wrapper
 
@@ -202,14 +204,16 @@ def countcall(function):
     return wrapper
 
 
-def repeat(number_of_times: int):
+def repeat(repeats: int):
     """Вызов ф-и несколько раз подряд"""
+
+    assert isinstance(repeats, int)
 
     def decorator(function):
         @wraps(function)
         def wrapper(*args, **kwargs):
-            res = [None] * number_of_times
-            for i in range(number_of_times):
+            res = [None] * repeats
+            for i in range(repeats):
                 res[i] = function(*args, **kwargs)
             return res
 
@@ -218,18 +222,22 @@ def repeat(number_of_times: int):
     return decorator
 
 
-def retry(num_retries, exception_to_check, sleep_time=0):
+def retry(retries: int, exception_to_check: Exception, sleep_time: int | float = 0):
     """Заставляет функцию, которая сталкивается с исключением, совершить несколько повторных попыток"""
 
-    def decorator(func):
-        @wraps(func)
+    assert isinstance(retries, int) and retries >= 0
+    assert isinstance(exception_to_check, Exception)
+    assert isinstance(sleep_time, (int, float)) and sleep_time >= 0
+
+    def decorator(function):
+        @wraps(function)
         def wrapper(*args, **kwargs):
-            for i in range(1, num_retries + 1):
+            for i in range(1, retries + 1):
                 try:
-                    return func(*args, **kwargs)
+                    return function(*args, **kwargs)
                 except exception_to_check as exception:
-                    print(f"{func.__name__} raised {exception.__class__.__name__}. Retrying...")
-                    if i < num_retries:
+                    print(f"{function.__name__} raised {exception.__class__.__name__}. Retrying...")
+                    if i < retries:
                         time.sleep(sleep_time)
             # Инициирование исключения, если функция оказалось неуспешной после указанного количества повторных попыток
             raise exception
@@ -239,9 +247,11 @@ def retry(num_retries, exception_to_check, sleep_time=0):
     return decorator
 
 
-def rate_limited(max_per_second):
-    """Ограничивает частоту вызова функции"""
-    min_interval = 1.0 / float(max_per_second)
+def rate_limited(frequency: int | float):
+    """Ограничивает частоту вызова функции с частотой frequency в секунду"""
+
+    assert isinstance(frequency, (int, float)) and frequency > 0
+    min_interval = 1.0 / frequency
 
     def decorator(function):
         last_time_called = [0.0]
@@ -270,96 +280,89 @@ def rate_limited(max_per_second):
 """
 
 
-@repeat(3)
-@timeit
-@lru_cache(maxsize=None)
-def heavy_processing(n, show=False):
-    time.sleep(n)
-    return 'pip'
-
-
-class Movie:
-    def __init__(self, r):
-        self._rating = r
-
-    """используется для определения свойств класса, 
-    которые по сути являются методами getter, setter и deleter для атрибута экземпляра класса.
-
-    Используя декоратор @property, можно определить метод как свойство класса и получить к нему доступ, 
-    как к атрибуту класса, без явного вызова метода.
-
-    Это полезно, если нужно добавить некоторые ограничения и логику проверки 
-    в отношении получения и установки значения."""
-
-    @property
-    def rating(self):
-        return self._rating
-
-    @rating.setter
-    def rating(self, r):
-        if 0 <= r <= 5:
-            self._rating = r
-        else:
-            raise ValueError("The movie rating must be between 0 and 5!")
-
-
-# позволяет функции иметь различные реализации для разных типов аргументов.
-@singledispatch
-def fun(arg):
-    print("Called with a single argument")
-
-
-@fun.register(int)
-def _(arg):
-    print("Called with an integer")
-
-
-@fun.register(list)
-def _(arg):
-    print("Called with a list")
-
-
-@deprecated('Этой функции не будет в следующей версии!')
-def _foo(n):
-    s = 0
-    for i in range(n):
-        s += n ** (0.5 + i)
-    return s
-
-
-"""
-Декоратор @dataclass в Python используется для декорирования классов.
-
-Он автоматически генерирует магические методы, 
-такие как __init__, __repr__, __eq__, __lt__ и __str__ для классов, 
-которые в основном хранят данные. 
-Это позволяет сократить объем кода и сделать классы более читаемыми и удобными для сопровождения.
-
-Он также предоставляет готовые методы для элегантного представления объектов, 
-преобразования их в формат JSON, обеспечения их неизменяемости и т.д.
-"""
-
-
-@dataclass
-class Person:
-    first_name: str
-    last_name: str
-    age: int
-    job: str
-
-    def __eq__(self, other):
-        if isinstance(other, Person):
-            return self.age == other.age
-        return NotImplemented
-
-    def __lt__(self, other):
-        if isinstance(other, Person):
-            return self.age < other.age
-        return NotImplemented
-
-
-def main():
+def test():
     """Тестирование"""
+
+    @repeat(3)
+    @timeit()
+    @lru_cache(maxsize=None)
+    def heavy_processing(n, show=False):
+        time.sleep(n)
+        return 'pip'
+
+    class Movie:
+        def __init__(self, r):
+            self._rating = r
+
+        """используется для определения свойств класса, 
+        которые по сути являются методами getter, setter и deleter для атрибута экземпляра класса.
+    
+        Используя декоратор @property, можно определить метод как свойство класса и получить к нему доступ, 
+        как к атрибуту класса, без явного вызова метода.
+    
+        Это полезно, если нужно добавить некоторые ограничения и логику проверки 
+        в отношении получения и установки значения."""
+
+        @property
+        def rating(self):
+            return self._rating
+
+        @rating.setter
+        def rating(self, r):
+            if 0 <= r <= 5:
+                self._rating = r
+            else:
+                raise ValueError("The movie rating must be between 0 and 5!")
+
+    # позволяет функции иметь различные реализации для разных типов аргументов.
+    @singledispatch
+    def fun(arg):
+        print("Called with a single argument")
+
+    @fun.register(int)
+    def _(arg):
+        print("Called with an integer")
+
+    @fun.register(list)
+    def _(arg):
+        print("Called with a list")
+
+    @deprecated('Этой функции не будет в следующей версии!')
+    def _foo(n):
+        s = 0
+        for i in range(n):
+            s += n ** (0.5 + i)
+        return s
+
+    """
+    Декоратор @dataclass в Python используется для декорирования классов.
+    
+    Он автоматически генерирует магические методы, 
+    такие как __init__, __repr__, __eq__, __lt__ и __str__ для классов, 
+    которые в основном хранят данные. 
+    Это позволяет сократить объем кода и сделать классы более читаемыми и удобными для сопровождения.
+    
+    Он также предоставляет готовые методы для элегантного представления объектов, 
+    преобразования их в формат JSON, обеспечения их неизменяемости и т.д.
+    """
+
+    @dataclass
+    class Person:
+        first_name: str
+        last_name: str
+        age: int
+        job: str
+
+        def __eq__(self, other):
+            if isinstance(other, Person):
+                return self.age == other.age
+            return NotImplemented
+
+        def __lt__(self, other):
+            if isinstance(other, Person):
+                return self.age < other.age
+            return NotImplemented
+
     print(heavy_processing(2))
     heavy_processing(2)
 
@@ -387,4 +390,4 @@ def main():
 if __name__ == '__main__':
     import cProfile
 
-    main()
+    cProfile.run('test()', sort='cumtime')
