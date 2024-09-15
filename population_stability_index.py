@@ -6,6 +6,7 @@ import seaborn as sns
 
 
 def psi(train, test, bins=10) -> float:
+    """Подсчет конкретного значения"""
     if not np.issubdtype(train.dtype, np.number):
         train_fractions = train.value_counts(normalize=True)
         test_fractions = test.value_counts(normalize=True)
@@ -30,6 +31,7 @@ def psi(train, test, bins=10) -> float:
 
 
 def population_stability_index(date_column, train, test, features=None):
+    """Подсчет всех значений в dataframe"""
     assert all(column in train.columns for column in test.columns)
     assert date_column in train.columns
 
@@ -56,7 +58,7 @@ if __name__ == '__main__':
 
     features = [c for c in df.columns if 'date' not in c and 'epk_id' not in c]
     df_psi = population_stability_index('date_month',
-                                        train=df[df['date_month'] <= '2023-01'],
+                                        train=df[(df['date_month'] <= '2023-01')],
                                         test=df[~(df['date_month'] <= '2023-01')],
                                         features=features)
 
@@ -64,17 +66,15 @@ if __name__ == '__main__':
     plt.title(f"PSI")
     plt.tight_layout()
 
-    sns.heatmap(
-        df_psi,
-        cmap='RdYlGn',
-        annot=True,
-        linewidths=0.75,
-        vmin=0,
-        vmax=0.3,
-        cbar=False,
-        fmt='.2f',
-        annot_kws={'fontsize': 12})
+    sns.heatmap(df_psi,
+                cmap='RdYlGn',
+                annot=True,
+                linewidths=0.75,
+                vmin=0,
+                vmax=0.3,
+                cbar=False,
+                fmt='.2f',
+                annot_kws={'fontsize': 12})
 
-    df_psi.round(3).style.set_precision(2).background_gradient(cmap='RdYlGn', axis=None, vmin=0, vmax=0.3)
-    df_psi.round(3).style.set_precision(2).background_gradient(cmap='RdYlGn', axis=None, vmin=0, vmax=0.3) \
-        .to_excel('psi.xlsx')
+    df_psi.style.set_precision(2).background_gradient(cmap='RdYlGn', axis=None, vmin=0, vmax=0.2)
+    df_psi.style.set_precision(2).background_gradient(cmap='RdYlGn', axis=None, vmin=0, vmax=0.2).to_excel('psi.xlsx')
