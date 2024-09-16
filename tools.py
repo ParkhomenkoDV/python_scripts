@@ -72,13 +72,14 @@ def derivative(f, x0: int | float, method: str = 'central', dx: float = 1e-6) ->
         Compute derivative at x = a
     method : string
         Difference formula:
-        'central': f(a+h) - f(a-h))/2h
-        'forward': f(a+h) - f(a))/h
-        'backward': f(a) - f(a-h))/h
+        'central': (f(a+h) - f(a-h)) / 2h
+        'forward': (f(a+h) - f(a)) / h
+        'backward': (f(a) - f(a-h)) / h
 
     dx : number
         Step size in difference formula
     """
+    assert isinstance(dx, float) and dx != 0
 
     if method == 'central':
         return (f(x0 + dx / 2) - f(x0 - dx / 2)) / dx
@@ -97,15 +98,14 @@ def smoothing(x, y, deg: int):
     return y_smooth
 
 
-def dist(p1: tuple, p2: tuple) -> float:
+def distance(p1: tuple, p2: tuple) -> float:
     """Декартово расстояние между 2D точками"""
     assert isinstance(p1, (tuple, list)) and isinstance(p2, (tuple, list))
     assert len(p1) == 2 and len(p2) == 2
-    return sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
-    # return np.linalg.norm(array(p1) - array(p2))
+    return float(np.linalg.norm(array(p1) - array(p2)))  # sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 
 
-def dist2line(point: tuple, ABC: tuple) -> float:
+def distance2line(point: tuple, ABC: tuple) -> float:
     """Расстояние от точки до прямой"""
     assert isinstance(point, (tuple, list))
     assert isinstance(ABC, (tuple, list))
@@ -114,7 +114,7 @@ def dist2line(point: tuple, ABC: tuple) -> float:
     return abs(ABC[0] * point[0] + ABC[1] * point[1] + ABC[2]) / sqrt(ABC[0] ** 2 + ABC[1] ** 2)
 
 
-def line_coefs(func=None, x0=None, p1=None, p2=None) -> tuple[float, float, float]:
+def line_coefficients(func=None, x0=None, p1=None, p2=None) -> tuple[float, float, float]:
     """Коэффициенты A, B, C касательной в точке x0 кривой f или прямой, проходящей через точки p1 и p2"""
     if func is not None and x0 is not None:
         df_dx = derivative(func, x0)
@@ -237,8 +237,9 @@ def export2(data, file_path='exports', file_name='export_file', file_extension='
 def angle(k1=nan, k2=nan, points=((), (), ())) -> float:
     """Находит острый угол [рад] между прямыми"""
     if all(points):
-        k1 = (points[0][1] - points[1][1]) / (points[0][0] - points[1][0])
-        k2 = (points[1][1] - points[2][1]) / (points[1][0] - points[2][0])
+        p0, p1, p2 = points  # разархивирование точек
+        k1 = (p0[1] - p1[1]) / (p0[0] - p1[0]) if (p0[0] - p1[0]) != 0 else inf
+        k2 = (p1[1] - p2[1]) / (p1[0] - p2[0]) if (p1[0] - p2[0]) != 0 else inf
     return abs(atan((k2 - k1) / (1 + k1 * k2)))
 
 
@@ -266,28 +267,24 @@ def isnum(s, type_num: str = 'float') -> bool:
 
 def isprime(n: int) -> bool:
     """Проверка на простое число"""
-    if type(n) is not int:
-        return False
-    else:
-        if n < 2: return False
-
-        for i in range(2, int(sqrt(n)) + 1):
-            if n % i == 0: return False
-        return True
+    if not isinstance(n, int): return False
+    if n < 2: return False
+    for i in range(2, int(sqrt(n)) + 1):
+        if n % i == 0: return False
+    return True
 
 
 def prime_factorization(n: int, repeat: bool = True) -> list[int]:
     """Разложение на простые множители"""
-    res = []
-    divisor = 2
+    result, divisor = list(), 2
     while divisor * divisor <= n:
         if n % divisor == 0:
-            res.append(divisor)
+            result.append(divisor)
             n //= divisor
         else:
             divisor += 1
-    if n > 1: res.append(n)
-    return res if repeat else list(set(res))
+    if n > 1: result.append(n)
+    return result if repeat else list(set(result))
 
 
 def isiter(i) -> bool:
@@ -316,7 +313,7 @@ def to_roman(num: int) -> str:
     return roman
 
 
-def to_dec(rom) -> int:
+def to_dec(rom: str) -> int:
     """Перевод в десятичную систему счисления"""
     dec = 0
     for i, r in all_roman:
@@ -337,24 +334,32 @@ def rounding(s, n=0) -> float:
 class Axis:
 
     @staticmethod
-    def transform(x, y, x0=0, y0=0, angle=0, scale=1):
+    def transform(x: int | float, y: int | float,
+                  x0: int | float = 0, y0: int | float = 0, angle: int | float = 0, scale: int | float = 1):
         """Перенос и поворот осей против часовой стрелки"""
-        res = scale * matmul(array(([cos(angle), sin(angle)],
-                                    [-sin(angle), cos(angle)])),
-                             array(([[x - x0],
-                                     [y - y0]])))
-        return res[0][0], res[1][0]
-        '''return (((x - x0) * cos(alpha) + (y - y0) * sin(alpha)) * scale,
-                (-(x - x0) * sin(alpha) + (y - y0) * cos(alpha)) * scale)'''
+        return scale * matmul(array(([cos(angle), sin(angle)],
+                                     [-sin(angle), cos(angle)])),
+                              array(([[x - x0],
+                                      [y - y0]]))).reshape(2)
 
     @staticmethod
     def mirror(x, y):
         pass
 
 
-def COOR(A1, C1, A2, C2) -> tuple[float, float]:
-    """Точка пересечения прямых с коэффициентами (A1, C1) и (A2, C2)"""
-    return ((C1 - C2) / (A2 - A1), (A2 * C1 - A1 * C2) / (A2 - A1)) if (A2 - A1) != 0 else (inf, inf)
+def coordinate_intersection_lines(ABC1: tuple | list | np.ndarray,
+                                  ABC2: tuple | list | np.ndarray) -> tuple[float, float]:
+    """Точка пересечения прямых с коэффициентами ABC1 = (A1, B1, C1) и ABC2 = (A2, B2, C2)"""
+    assert isinstance(ABC1, (tuple, list, np.ndarray)) and isinstance(ABC2, (tuple, list, np.ndarray))
+    assert all(isinstance(el, (int, float, np.number)) for el in ABC1)
+    assert all(isinstance(el, (int, float, np.number)) for el in ABC2)
+
+    A1, B1, C1 = ABC1
+    A2, B2, C2 = ABC2
+    x = -(C2 * B1 - C1 * B2) / (A2 * B1 - B2 * A1) if (A2 * B1 - B2 * A1) != 0 else inf
+    y = -(C2 * A1 - A2 * C1) / (B2 * A1 - A2 * B1) if (B2 * A1 - A2 * B1) != 0 else inf
+
+    return x, y
 
 
 def check_brackets(s: str) -> bool:
