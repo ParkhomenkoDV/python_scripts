@@ -71,7 +71,7 @@ def distance2line(point: tuple, ABC: tuple) -> float:
     return abs(ABC[0] * point[0] + ABC[1] * point[1] + ABC[2]) / sqrt(ABC[0] ** 2 + ABC[1] ** 2)
 
 
-def line_coefficients(func=None, x0=None, p1=None, p2=None) -> tuple[float, float, float]:
+def coefficients_line(func=None, x0=None, p1=None, p2=None) -> tuple[float, float, float]:
     """Коэффициенты A, B, C касательной в точке x0 кривой f или прямой, проходящей через точки p1 и p2"""
     if func is not None and x0 is not None:
         df_dx = derivative(func, x0)
@@ -119,6 +119,45 @@ def tan2cos(tg):
 def cot2sin(ctg):
     """Преобразование котангенса в синус"""
     return sqrt(1 / (ctg ** 2 + 1))
+
+
+def tan2sin(tg):
+    """Преобразование тангенса в синус"""
+    return tg * tan2cos(tg)
+
+
+def cot2cos(ctg):
+    """Преобразование котангенса в косинус"""
+    return ctg * cot2sin(ctg)
+
+
+def sum_atan(a1, a2):
+    """atan(a1) + atan(a2)"""
+    if a1 * a2 < 1:
+        return atan((a1 + a2) / (1 - a1 * a2))
+    elif a1 > 0 and a1 * a2 > 1:
+        return pi + atan((a1 + a2) / (1 - a1 * a2))
+    elif a1 < 0 and a1 * a2 > 1:
+        return -pi + atan((a1 + a2) / (1 - a1 * a2))
+
+
+def discriminant(a, b, c) -> float:
+    """Дискриминант"""
+    assert isinstance(a, (int, float, np.number))
+    assert isinstance(b, (int, float, np.number))
+    assert isinstance(c, (int, float, np.number))
+    return b ** 2 - 4 * a * c
+
+
+def quadratic_equation(a, b, c) -> tuple | float | None:
+    """Решение квадратного уравнения"""
+    d = discriminant(a, b, c)
+    if d > 0:
+        return (-b - sqrt(d)) / (2 * a), (-b + sqrt(d)) / (2 * a)
+    elif d == 0:
+        return -b / (2 * a)
+    else:
+        return None
 
 
 def is_coprime(a: int, b: int) -> bool:
