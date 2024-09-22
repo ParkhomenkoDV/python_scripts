@@ -151,7 +151,7 @@ def discriminant(a, b, c) -> float:
 
 def quadratic_equation(a, b, c) -> tuple | float | None:
     """Решение квадратного уравнения"""
-    d = discriminant(a, b, c)
+    d = discriminant(a, b, c)  # assert внутри
     if d > 0:
         return (-b - sqrt(d)) / (2 * a), (-b + sqrt(d)) / (2 * a)
     elif d == 0:
@@ -236,10 +236,22 @@ def av3D(F, T1, T2, P1, P2):
 
 
 class Axis:
+    """Оси"""
 
     @staticmethod
-    def transform(x: int | float, y: int | float,
-                  x0: int | float = 0, y0: int | float = 0, angle: int | float = 0, scale: int | float = 1):
+    def to_cartesian(r: int | float | np.number, a: int | float | np.number) -> tuple[float, float]:
+        """Преобразование в декартову СК"""
+        return r * cos(a), r * sin(a)
+
+    @staticmethod
+    def to_polar(x: int | float | np.number, y: int | float | np.number) -> tuple[float, float]:
+        """Преобразование в полярную СК"""
+        return distance(p1=(0, 0), p2=(x, y)), atan(y / x)
+
+    @staticmethod
+    def transform(x: int | float | np.number, y: int | float | np.number,
+                  x0: int | float | np.number = 0, y0: int | float | np.number = 0,
+                  angle: int | float | np.number = 0, scale: int | float | np.number = 1):
         """Перенос и поворот осей против часовой стрелки"""
         return scale * matmul(array(([cos(angle), sin(angle)],
                                      [-sin(angle), cos(angle)])),
@@ -247,5 +259,5 @@ class Axis:
                                       [y - y0]]))).reshape(2)
 
     @staticmethod
-    def mirror(x, y):
-        pass
+    def mirror(x: int | float | np.number, y: int | float | np.number):
+        pass  # TODO
