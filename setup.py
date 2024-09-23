@@ -8,7 +8,7 @@ with open('requirements.txt', 'rt') as file:
 
 setup(
     name='tools',
-    version='2024-09-23',
+    version='1.0',
     description='lib',
     long_description=long_description,
     author='Daniil Andryushin',
