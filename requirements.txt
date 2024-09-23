@@ -2,7 +2,6 @@ colorama
 tqdm
 
 pandas
-polars
 numpy==1.26.4
 scipy
 Levenshtein

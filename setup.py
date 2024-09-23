@@ -13,8 +13,8 @@ setup(
     long_description=long_description,
     author='Daniil Andryushin',
     author_email='',
-    url='',
-    packages=find_packages(exclude=['tests', 'test.*']),
+    url='https://github.com/ParkhomenkoDV/python_scripts',
+    packages=find_packages(exclude=['datas', 'tests', 'test.*']),
     python_requires='>=3.8',
     install_requires=install_requires,
 )
