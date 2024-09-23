@@ -59,7 +59,7 @@ def show(*args, title='curve'):
     plt.show()
 
 
-def test()->None:
+def test() -> None:
     """Тестирование"""
     points = ((1, 0), (0.4, 0.4), (0.05, 0.15), (0, 0), (0.1, -0.1), (0.2, -0.1), (0.5, 0.15), (1, 0))
     points = array(points)
@@ -72,9 +72,8 @@ def test()->None:
     # print(bernstein_points)
     show(points, bernstein_points, title='Bernstein curve')
 
+
 if __name__ == '__main__':
     import cProfile
 
     cProfile.run('test()', sort='cumtime')
-
-
