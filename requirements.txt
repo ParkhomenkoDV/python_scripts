@@ -16,6 +16,7 @@ scikit-learn
 imblearn
 catboost
 shap
+optuna
 
 opencv-python
 

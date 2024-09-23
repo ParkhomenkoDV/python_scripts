@@ -112,6 +112,11 @@ class DataFrame(pd.DataFrame):
         else:
             return DataFrame(super().__getitem__(item), target=self.target)  # DataFrame
 
+    def __getattr__(self, item):
+        if isinstance(self.item, pd.DataFrame):
+            return DataFrame(self.item)
+        return self.item
+
     #  def copy(self, deep=False):  # не работает в виду блокировки наследования данной функции у pandas
 
     @property
@@ -905,7 +910,10 @@ class DataFrame(pd.DataFrame):
                            'learning_rate': kwargs.pop('learning_rate', 0.1),
                            'rsm': kwargs.pop('rsm', None),
                            'depth': kwargs.pop('depth', 15),
-                           # 'Logloss': бинарная классификация, 'CrossEntropy': предсказания, 'MultiClass': многокласс
+                           # 'Logloss': бинарная классификация,
+                           # 'CrossEntropy': предсказание вероятности,
+                           # 'MultiClass': многоклассовая
+                           'eval_metric': kwargs.pop('eval_metric', None), # 'AUC'
                            'loss_function': kwargs.pop('loss_function', 'Logloss'),
                            'custom_loss': kwargs.pop('custom_loss', tuple()),
                            'random_seed': kwargs.pop('random_seed', None),

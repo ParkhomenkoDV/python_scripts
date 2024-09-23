@@ -1,4 +1,3 @@
-
 import sys
 import os
 from tqdm import tqdm
@@ -74,6 +73,27 @@ SCALERS = (Normalizer, StandardScaler, MinMaxScaler, MaxAbsScaler, RobustScaler,
 def gini(y_true, y_predicted) -> float:
     """Критерий Джинни"""
     return 2 * roc_auc_score(y_true, y_predicted) - 1
+
+
+def backward_importance_features(model, train: tuple, test: tuple,
+                                 fit_parameters: dict | None = None) -> dict[str:tuple]:
+    x_train, y_train = train
+    x_test, y_test = test
+
+    if fit_parameters is None: fit_parameters = dict()
+
+    model.fit(x_train, y_train, **fit_parameters)
+    history = {'': (model.score(x_train, y_train), model.score(x_test, y_test))}
+
+    features = x_train.columns.to_list().copy()
+
+    for feature in x_train.columns:
+        features.remove(feature)
+        model.fit(x_train[features], y_train, **fit_parameters)
+        history[feature] = (model.score(x_train[features], y_train), model.score(x_test[features], y_test))
+        features.append(feature)
+
+    return dict(sorted(history.items(), key=lambda item: item[1][1]))
 
 
 class Model:
@@ -514,9 +534,9 @@ class Clusterizer(Model):
         from scipy.spatial.distance import pdist
         from scipy.cluster import hierarchy
         x_scaled = StandardScaler().fit_transform(x_train) if scale else x_train
-        distance_matrix = pdist(x_scaled) # матрица попарных расстояний между точками
-        z = hierarchy.linkage(distance_matrix, 'ward')# тип расстояния Уорда
-        plt.figure(figsize=(32,16))
+        distance_matrix = pdist(x_scaled)  # матрица попарных расстояний между точками
+        z = hierarchy.linkage(distance_matrix, 'ward')  # тип расстояния Уорда
+        plt.figure(figsize=(32, 16))
         dn = hierarchy.dendrogram(z)
 
 
