@@ -1,10 +1,5 @@
 from setuptools import setup, find_packages
 
-import tools
-import decorators
-import math_tools
-import curves
-
 with open('README.md', 'rt', encoding='utf-8') as file:
     long_description = file.read()
 
@@ -13,7 +8,7 @@ with open('requirements.txt', 'rt') as file:
 
 setup(
     name='python_scripts',
-    #version='1.0',
+    # version='1.0',
     description='lib',
     long_description=long_description,
     author='Daniil Andryushin',
