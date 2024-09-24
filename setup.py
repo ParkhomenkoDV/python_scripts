@@ -10,7 +10,7 @@ with open('requirements.txt', 'rt') as file:
 
 setup(
     name=name,
-    version='2.0',
+    version='3.0',
     description='lib',
     long_description=long_description,
     long_description_content_type='text/markdown',  # если long_description = .md
