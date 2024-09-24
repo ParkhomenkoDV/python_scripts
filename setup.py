@@ -12,7 +12,7 @@ with open('requirements.txt', 'rt') as file:
     install_requires = file.readlines()
 
 setup(
-    name='tools',
+    name='python_scripts',
     #version='1.0',
     description='lib',
     long_description=long_description,
