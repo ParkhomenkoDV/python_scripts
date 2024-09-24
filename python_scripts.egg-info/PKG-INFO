@@ -1,0 +1,24 @@
+Metadata-Version: 2.1
+Name: python_scripts
+Version: 2.0
+Summary: lib
+Home-page: https://github.com/ParkhomenkoDV/python_scripts
+Author: Daniil Andryushin
+Author-email: 
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: colorama
+Requires-Dist: tqdm
+Requires-Dist: pandas
+Requires-Dist: numpy==1.26.4
+Requires-Dist: scipy
+Requires-Dist: Levenshtein
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Requires-Dist: nltk
+Requires-Dist: scikit-learn
+Requires-Dist: imblearn
+Requires-Dist: catboost
+Requires-Dist: shap
+Requires-Dist: optuna
+Requires-Dist: opencv-python
